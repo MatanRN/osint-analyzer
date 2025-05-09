@@ -1,29 +1,14 @@
+import json
+
 from google import genai
 
 MODEL = "gemini-2.0-flash"
 
 
 class Analyst:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, country):
         self.client = genai.Client(api_key=api_key)
-
-    def analyze_image(self, image, country):
-        """
-        Analyzes a satellite image to identify military structures and equipment.
-
-        Uses Gemini AI model to analyze the provided image in the context of the specified
-        country's military facilities. The model identifies potential military structures,
-        equipment, and other significant features in the image.
-
-        Args:
-            image: Image data (PIL Image, bytes, or file path) to be analyzed
-            country: String indicating the country whose military facilities are being examined
-
-        Returns:
-            str: Text analysis of the image containing findings about military structures,
-                equipment, and other relevant observations
-        """
-        prompt = f"""
+        self.prompt = f"""
 You are a seasoned Senior Intelligence Analyst specializing in satellite imagery interpretation for the US Army. Your mission is critical. We have credible intelligence indicating this area is a significant military base/facility of {country}.
 
 Your task is to meticulously analyze the provided satellite image. You MUST respond ONLY with a JSON object. Do not include any other text, explanations, or apologies outside of this JSON structure.
@@ -41,8 +26,63 @@ The JSON object must contain the following keys:
     - 'finish': If you are confident that you have extracted all actionable intelligence from the current image and have a comprehensive understanding of the visible elements within the target area.
 """
 
+    def analyze_image(self, image):
+        """
+        Analyzes a satellite image to identify military structures and equipment.
+
+        Uses Gemini AI model to analyze the provided image in the context of the specified
+        country's military facilities. The model identifies potential military structures,
+        equipment, and other significant features in the image.
+
+        Args:
+            image: Image data (PIL Image, bytes, or file path) to be analyzed
+            country: String indicating the country whose military facilities are being examined
+
+        Returns:
+            str: Text analysis of the image containing findings about military structures,
+                equipment, and other relevant observations
+        """
+
         response = self.client.models.generate_content(
             model=MODEL,
-            contents=[image, prompt],
+            contents=[image, self.prompt],
         )
-        return response.text
+        # Extract JSON string from Markdown code block
+        json_string = response.text
+        if json_string.startswith("```json"):
+            json_string = json_string[7:]  # Remove ```json\n
+        if json_string.endswith("```"):
+            json_string = json_string[:-3]  # Remove ```
+
+        response_json = json.loads(json_string.strip())
+        return response_json
+
+    def append_results(self, analyst_index: int, results: dict):
+        """
+        Appends the analysis and recommendations from a previous analyst to the current prompt.
+
+        This method takes the results from a previous analysis step, formats them,
+        and adds them to the existing `self.prompt`. This provides context to the
+        LLM for subsequent analysis, encouraging it to build upon previous findings
+        while still thinking critically.
+
+        Args:
+            analyst_index: The index or identifier of the previous analyst/analysis step.
+            results: A dictionary containing the 'analysis' and 'things_to_continue_analyzing'
+                    from the previous step.
+        """
+        analysis = results["analysis"]
+        things_to_examine_list = results["things_to_continue_analyzing"]
+        things_to_examine_str = "\n".join(
+            f"- {item}" for item in things_to_examine_list
+        )  # Format as a list
+
+        previous_analysis_prompt = f"""
+
+Here is the analysis of previous analyst {analyst_index} about this area and their recommendations. You can use this data but don’t use it as fact, think for yourself:
+Analysis:
+{analysis}
+Things to examine:
+{things_to_examine_str}
+"""
+        self.prompt += previous_analysis_prompt

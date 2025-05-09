@@ -43,7 +43,13 @@ class ScreenshotHandler:
             print("Timeout waiting for page to load")
             return False
 
-    def screenshot(self, latitude: str, longitude: str, output_file_path: str = None):
+    def screenshot(
+        self,
+        latitude: float,
+        longitude: float,
+        ground_distance: int = 20000,
+        output_file_path: str = None,
+    ):
         """
         Takes a screenshot of Google Earth at the specified coordinates.
 
@@ -62,9 +68,7 @@ class ScreenshotHandler:
         if output_file_path is None:
             output_file_path = f"screenshots/location_{latitude}_{longitude}.jpeg"
 
-        google_earth_url = (
-            f"https://earth.google.com/web/@{latitude},{longitude},100a,20000d"
-        )
+        google_earth_url = f"https://earth.google.com/web/@{latitude},{longitude},0a,{ground_distance}d"
         self.driver.get(google_earth_url)
 
         is_page_ready = self.__wait_for_page_load()
