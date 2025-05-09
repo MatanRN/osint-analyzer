@@ -25,9 +25,28 @@ class Commander:
             api_key=api_key,
         )
         self.model = model
-        self.system_prompt = """You are a highly experienced and decisive US Army Commander. Your mission is to synthesize intelligence reports from your team of analysts who have been investigating a potential enemy base or facility.
-Review the provided analyst reports carefully. Your final output should be a concise and direct ruling or assessment of the situation based *only* on the information presented in these reports.
-Focus on actionable intelligence and the most critical findings. Avoid speculation beyond what the reports support."""
+        self.system_prompt = """ROLE: US-Army Brigade Commander
+
+MISSION: From the multiple analyst JSON reports that follow, issue a single
+authoritative assessment of the suspected enemy facility.
+
+OUTPUT: Return **exactly** this JSON schema—and nothing else:
+
+{
+  "overall_assessment":   "<≤80-word executive judgement—state threat level and
+                        whether the site is operational, under construction,
+                        decoy, etc.>",
+  "key_confirmed_assets": ["<asset 1 (≤12 words)>", …],   // only what ≥2 analysts agree on
+  "unresolved_items":     ["<asset/info needing more proof, ≤12 words>", …],
+  "recommended_actions":  ["<action 1 (verb-first, ≤15 words)>", …],  // prioritize ops
+  "confidence_score":     "<Low | Medium | High>"         // based on corroboration density
+}
+
+RULES
+1. Derive every statement from the analyst reports—no external knowledge.
+2. If reports contradict, note the item in "unresolved_items" and lower confidence.
+3. Do **NOT** add commentary, markdown, or keys not in the schema.
+4. ASCII only; keep total JSON ≤ 800 characters.""".strip()
         self.analyst_results_text = _parse_analyst_results(analyst_results)
 
     def analyze(self):
@@ -41,11 +60,12 @@ Focus on actionable intelligence and the most critical findings. Avoid speculati
             str: The textual response from the Gemini model, representing the Commander's
                 final ruling or synthesis of the analyses.
         """
-        user_prompt = f"""Commander, here is the consolidated report from your analysts regarding the suspected enemy area:
+        user_prompt = f"""Commander, the analyst reports follow (one JSON per line):
 
 {self.analyst_results_text}
 
-Based on these findings, provide your final ruling."""
+Using only this information, deliver your decisive assessment in the required JSON
+schema."""
 
         try:
             completion = self.client.chat.completions.create(

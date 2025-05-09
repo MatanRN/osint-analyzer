@@ -19,6 +19,27 @@ if not (GEMINI_KEY or OPENROUTER_KEY):
 
 
 def team_analysis(screenshot_handler, analyst, base, team_size=8):
+    """
+    Conducts a multi-step analysis of a given base using a team of virtual analysts.
+
+    The function simulates a team of analysts examining a geographical location (base).
+    Each analyst takes a screenshot, analyzes it, and suggests an action (zoom, move, finish).
+    The process iterates, adjusting the view based on analyst actions, until an analyst
+    decides to 'finish' or the team_size limit is reached.
+    Finally, a commander synthesizes all analyst reports into a final verdict.
+
+    Args:
+        screenshot_handler: An instance of ScreenshotHandler to capture images.
+        analyst: An instance of the Analyst class to perform image analysis.
+        base: A dictionary containing base information, including 'latitude',
+            'longitude', and 'country'.
+        team_size (int, optional): The maximum number of analyst iterations.
+                                Defaults to 8.
+
+    Returns:
+        dict: A dictionary containing all analyses, including individual analyst
+            reports and the final commander's verdict.
+    """
     latitude = float(base["latitude"])
     longitude = float(base["longitude"])
     distance_to_ground = 20000
@@ -52,15 +73,13 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
     commander = Commander(api_key=OPENROUTER_KEY, analyst_results=analyses)
     verdict = commander.analyze()
 
-    analyses["Commander"] = {"analysis": verdict}
-    print(f"Commander Verdict:{verdict}")
-
+    analyses["Commander"] = json.loads(verdict.strip())
     return analyses
 
 
 def main():
     csv_path = "./military_bases.csv"
-    rows_to_process = 2
+    rows_to_process = 1
     military_bases = parse_csv(csv_path, rows_to_process)
     screenshot_handler = ScreenshotHandler()
 

@@ -23,22 +23,30 @@ class Analyst:
         self.country = country
         self.model = model
         self.prompt = f"""
-You are an expert in understanding satellite imagery and you work for the US army. We got
-intel that this area is a base/facility of the military of {country}. Analyze this image and
-respond ONLY with a JSON object containing the following keys:
-1.'findings': A list of findings that you think are important for the US army to know, including
-all man-made structures, military equipment, and infrastructure. We are trying to find which
-systems, weapons, or equipment are present so focus on that.
-2.'analysis': A detailed analysis of your findings.
-3.'things_to_continue_analyzing': A list of things that you think are important to continue analyzing in further images. Mention its general position in the image.
-4.'action': One of ['zoom-in','zoom-out','move-left','move-right','finish'] based on what would help you analyze the image or area better.
-- Choose 'zoom-in' if you need to zoom in the image
-- Choose 'zoom-out' if you need more context of the surrounding area or if you are zoomed
-in too much.
-- Choose 'move-left' or 'move-right' if you suspect there are important features just outside
-the current view.
-- Choose 'finish' if you have a complete understanding of the location.
-"""
+SYSTEM (role):
+You are a US-Army satellite-imagery analyst.
+
+TASK (single image, suspected {country} military site):
+Return **only** a strictly valid JSON object with **exactly** these keys ⬇️
+
+1. "findings" – array of concise (< 25 words each) observations of man-made structures, weapons, vehicles, or support infrastructure visible in the frame.  
+2. "analysis" – one paragraph, ≤ 120 words, explaining the operational significance of the findings (no copy-paste from bullets).  
+3. "things_to_continue_analyzing" – array of < 15-word items that describe features worth inspecting in later images; include approximate image quadrant (e.g., "suspected SAM TEL, NE-quadrant").  
+4. "action" – ONE of: "zoom-in", "zoom-out", "move-left", "move-right", "finish".  
+   • Need finer detail → "zoom-in"  
+   • Need more surrounding context → "zoom-out"  
+   • Edge-hint of important feature → "move-left"/"move-right"  
+   • Confident assessment complete → "finish"
+
+RULES:  
+A. You **may inspect prior-run analyses provided below**, but treat them as unverified; form your own judgment.  
+B. Output nothing except the JSON (no commentary, no markdown).  
+C. Keep total JSON length ≤ 900 characters.  
+D. Do not invent objects; use "none" when a section is empty.  
+E. Use double quotes around all keys and string values.  
+F. ASCII only.
+
+""".strip()
 
     def analyze_image(self, image):
         """
@@ -85,14 +93,10 @@ the current view.
             results: A dictionary containing the 'analysis' and 'things_to_continue_analyzing'
                     from the previous step.
         """
-        analysis = results["analysis"]
 
         previous_analysis_prompt = f"""
--------------------------------------
-Analysis by Analyst {analyst_index+1}:
-    Analysis:
-        {results["analysis"]}
-    Things to continue analyzing:
-        {results["things_to_continue_analyzing"]}
+    "analyst":{analyst_index}
+    "analysis":{results["analysis"]}
+    "things_to_continue_analyzing":{results["things_to_continue_analyzing"]}
 """
-        self.prompt += previous_analysis_prompt
+        self.prompt += previous_analysis_prompt.strip()
