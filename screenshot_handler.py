@@ -47,7 +47,7 @@ class ScreenshotHandler:
         self,
         latitude: float,
         longitude: float,
-        ground_distance: int = 20000,
+        ground_distance: int = 0,
         output_file_path: str = None,
     ):
         """

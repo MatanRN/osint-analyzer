@@ -23,21 +23,21 @@ class Analyst:
         self.country = country
         self.model = model
         self.prompt = f"""
-You are a seasoned Senior Intelligence Analyst specializing in satellite imagery interpretation for the US Army. Your mission is critical. We have credible intelligence indicating this area is a significant military base/facility of {self.country}.
-
-Your task is to meticulously analyze the provided satellite image. You MUST respond ONLY with a JSON object. Do not include any other text, explanations, or apologies outside of this JSON structure.
-
-The JSON object must contain the following keys:
-
-1.  'findings': A precise list of all identifiable man-made structures, military equipment (e.g., specific vehicle types, aircraft, missile systems, radar installations), and critical infrastructure. Prioritize identification of systems, weapons, or equipment. Be specific and avoid ambiguity.
-2.  'analysis': A concise, detailed tactical analysis of your findings. Explain the potential significance of the identified items and their layout. If there are uncertainties, state them clearly.
-3.  'things_to_continue_analyzing': A list of specific features, areas, or unidentified objects that require further scrutiny in subsequent imagery. Be specific about what to look for.
-4.  'action': Choose ONLY one action from the following list: ['zoom-in','zoom-out','move-left','move-right','finish']. Your choice should be based on what is most crucial for enhancing your analytical understanding of the target area.
-    - 'zoom-in': If finer details of specific objects or areas are necessary for positive identification or assessment.
-    - 'zoom-out': If broader contextual understanding of the surrounding area is needed, or if the current view is too magnified to assess interconnections.
-    - 'move-left': If there are strong indicators or suspicions of relevant activity or structures immediately to the left of the current frame.
-    - 'move-right': If there are strong indicators or suspicions of relevant activity or structures immediately to the right of the current frame.
-    - 'finish': If you are confident that you have extracted all actionable intelligence from the current image and have a comprehensive understanding of the visible elements within the target area.
+You are an expert in understanding satellite imagery and you work for the US army. We got
+intel that this area is a base/facility of the military of {country}. Analyze this image and
+respond ONLY with a JSON object containing the following keys:
+1.'findings': A list of findings that you think are important for the US army to know, including
+all man-made structures, military equipment, and infrastructure. We are trying to find which
+systems, weapons, or equipment are present so focus on that.
+2.'analysis': A detailed analysis of your findings.
+3.'things_to_continue_analyzing': A list of things that you think are important to continue analyzing in further images. Mention its general position in the image.
+4.'action': One of ['zoom-in','zoom-out','move-left','move-right','finish'] based on what would help you analyze the image or area better.
+- Choose 'zoom-in' if you need to zoom in the image
+- Choose 'zoom-out' if you need more context of the surrounding area or if you are zoomed
+in too much.
+- Choose 'move-left' or 'move-right' if you suspect there are important features just outside
+the current view.
+- Choose 'finish' if you have a complete understanding of the location.
 """
 
     def analyze_image(self, image):
@@ -86,17 +86,13 @@ The JSON object must contain the following keys:
                     from the previous step.
         """
         analysis = results["analysis"]
-        things_to_examine_list = results["things_to_continue_analyzing"]
-        things_to_examine_str = "\n".join(
-            f"- {item}" for item in things_to_examine_list
-        )  # Format as a list
 
         previous_analysis_prompt = f"""
-
-Here is the analysis of previous analyst {analyst_index+1} about this area and their recommendations. You can use this data but don’t use it as fact, think for yourself:
-Analysis:
-{analysis}
-Things to examine:
-{things_to_examine_str}
+-------------------------------------
+Analysis by Analyst {analyst_index+1}:
+    Analysis:
+        {results["analysis"]}
+    Things to continue analyzing:
+        {results["things_to_continue_analyzing"]}
 """
         self.prompt += previous_analysis_prompt

@@ -1,4 +1,5 @@
 import os
+import json
 
 import dotenv
 
@@ -21,21 +22,21 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
     longitude = float(base["longitude"])
     distance_to_ground = 20000
 
-    analyses = []
+    analyses = {}
 
     for i in range(team_size):
         screenshot = screenshot_handler.screenshot(
             latitude=latitude, longitude=longitude, ground_distance=distance_to_ground
         )
         screenshot_analysis = analyst.analyze_image(image=screenshot)
-        analyses.append(screenshot_analysis)
+        analyses[f"Analyst {i+1}"] = screenshot_analysis
 
         print(f"command:{screenshot_analysis['action']}")
         match screenshot_analysis["action"]:
             case "zoom-in":
-                distance_to_ground -= 3000
+                distance_to_ground -= 5000
             case "zoom-out":
-                distance_to_ground += 3000
+                distance_to_ground += 5000
             case "move-left":
                 longitude -= 0.01
             case "move-right":
@@ -49,8 +50,11 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
 
     commander = Commander(api_key=API_KEY, analyst_results=analyses)
     verdict = commander.analyze()
+
+    analyses["Commander"] = {"analysis": verdict}
     print(f"Commander Verdict:{verdict}")
-    return verdict
+
+    return analyses
 
 
 def main():
@@ -59,10 +63,21 @@ def main():
     military_bases = parse_csv(csv_path, rows_to_process)
     screenshot_handler = ScreenshotHandler()
 
-    base = military_bases[0]
-    analyze_country = base["country"]
-    analyst = Analyst(api_key=API_KEY, country=analyze_country)
-    team_analysis(screenshot_handler=screenshot_handler, analyst=analyst, base=base)
+    base_analyses = []
+    for base in military_bases:
+        analyze_country = base["country"]
+        analyst = Analyst(api_key=API_KEY, country=analyze_country)
+        base_analyses.append(
+            team_analysis(
+                screenshot_handler=screenshot_handler, analyst=analyst, base=base
+            )
+        )
+    bases_data = json.dumps(base_analyses, indent=4)
+
+    output_file_path = "data.json"
+    with open(output_file_path, "w") as f:
+        f.write(bases_data)
+    print(f"Analysis data saved to {output_file_path}")
 
     screenshot_handler.quit()
 

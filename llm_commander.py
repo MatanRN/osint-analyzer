@@ -39,13 +39,17 @@ written by a different analyst).{_parse_analyst_results(analyst_results)} Return
         return response.text
 
 
-def _parse_analyst_results(results: list) -> str:
+def _parse_analyst_results(results: dict) -> str:
     analyses_string = ""
-    for i, result in enumerate(results):
-        analysis = result.get("analysis")
+    # 'analyst_name' will be the key, e.g., "Analyst 1"
+    for i, analyst_name in enumerate(results):
+        # Get the actual analysis data dictionary using the key
+        analysis_data = results[analyst_name]
+        # Get the 'analysis' text from this dictionary,
+        analysis_text = analysis_data.get("analysis")
+
         analyses_string += f"""
-        Analyst {i+1}:
-            - {analysis}
-        
+        {analyst_name}:
+            - Analysis: {analysis_text}
 """
     return analyses_string
