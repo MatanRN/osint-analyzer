@@ -2,3 +2,10 @@ selenium
 Pillow
 google-genai
 dotenv
+python-dotenv
+
+streamlit
+pandas
+folium
+streamlit-folium
+plotly
