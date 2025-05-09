@@ -175,19 +175,25 @@ elif st.session_state.page == "base_details":
                 st_folium(base_map)  # Updated function call
 
             with col2:
-                # Display the screenshot
-                st.subheader("Satellite Image")
-                screenshot_path = f"screenshots/location_{lat}_{lon}.jpeg"
+                # Display the first analyst's screenshot
+                st.subheader("Initial Satellite Image (Analyst 1)")
+                country = base_info.get("country", "Unknown")
+                base_id_for_screenshot = f"{lat}_{lon}_{country}"
+                first_analyst_screenshot_path = (
+                    f"screenshots/{base_id_for_screenshot}/analyst_1.jpeg"
+                )
 
-                if os.path.exists(screenshot_path):
-                    image = Image.open(screenshot_path)
+                if os.path.exists(first_analyst_screenshot_path):
+                    image = Image.open(first_analyst_screenshot_path)
                     st.image(
                         image,
-                        caption="Satellite view of the base",
+                        caption="Initial satellite view by Analyst 1",
                         use_container_width=True,
                     )
                 else:
-                    st.error(f"Screenshot not found: {screenshot_path}")
+                    st.error(
+                        f"Screenshot for Analyst 1 not found: {first_analyst_screenshot_path}"
+                    )
 
             # Display base metadata and key findings in a styled box
             st.markdown(
@@ -339,6 +345,17 @@ elif st.session_state.page == "base_details":
             # Display the selected analyst's report with styled containers
             if selected_analyst:
                 analyst_report = base_analysis.get(selected_analyst, {})
+                analyst_number_str = selected_analyst.split(" ")[
+                    -1
+                ]  # e.g., "Analyst 1" -> "1"
+
+                # Construct base_id for screenshot path
+                lat = base_info.get("latitude", "N/A")
+                lon = base_info.get("longitude", "N/A")
+                country = base_info.get("country", "Unknown")
+                base_id_for_screenshot = f"{lat}_{lon}_{country}"
+
+                analyst_screenshot_path = f"screenshots/{base_id_for_screenshot}/analyst_{analyst_number_str}.jpeg"
 
                 # Create tabs within the analyst report for better organization
                 findings_tab, analysis_tab, continue_tab, action_tab = st.tabs(
@@ -420,6 +437,20 @@ elif st.session_state.page == "base_details":
                         "<div class='analysis-container'>", unsafe_allow_html=True
                     )
                     st.subheader("Analysis Details")
+
+                    # Display analyst's screenshot
+                    if os.path.exists(analyst_screenshot_path):
+                        analyst_image = Image.open(analyst_screenshot_path)
+                        st.image(
+                            analyst_image,
+                            caption=f"Screenshot by {selected_analyst}",
+                            use_container_width=True,
+                        )
+                    else:
+                        st.warning(
+                            f"Screenshot for {selected_analyst} not found at {analyst_screenshot_path}"
+                        )
+
                     st.write(analyst_report.get("analysis", "No analysis available"))
                     st.markdown("</div>", unsafe_allow_html=True)
 
