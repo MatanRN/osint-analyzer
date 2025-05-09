@@ -12,12 +12,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 class ScreenshotHandler:
     def __init__(self, options=None):
         """
-        Initialize the screenshot handler with optional custom dimensions
+        Initialize the screenshot handler with optional Chrome options.
 
         Args:
-            width: Screenshot width in pixels
-            height: Screenshot height in pixels
-            options: Optional Chrome options
+            options: Optional Chrome options for the WebDriver
         """
         chrome_options = ChromeOptions() if options is None else options
 
@@ -27,7 +25,15 @@ class ScreenshotHandler:
         os.makedirs("screenshots", exist_ok=True)
 
     def __wait_for_page_load(self, timeout=10):
-        """Wait for page to load completely. Returns True if successful, False if timeout."""
+        """
+        Wait for page to load completely.
+
+        Args:
+            timeout: Maximum time to wait in seconds
+
+        Returns:
+            bool: True if page loaded successfully, False if timeout occurred
+        """
         try:
             WebDriverWait(self.driver, timeout).until(
                 lambda d: d.execute_script("return document.readyState") == "complete"
@@ -39,12 +45,15 @@ class ScreenshotHandler:
 
     def screenshot(self, latitude: str, longitude: str, output_file_path: str = None):
         """
-        Takes a screenshot of Google Earth at the specified coordinates
+        Takes a screenshot of Google Earth at the specified coordinates.
 
         Args:
             latitude: Location latitude
             longitude: Location longitude
             output_file_path: Optional custom file path for the screenshot
+
+        Returns:
+            PIL.Image: The cropped image if successful, None otherwise
         """
 
         image_width = 1024
@@ -83,11 +92,12 @@ class ScreenshotHandler:
             cropped_img = cropped_img.convert("RGB")  # Remove alpha for JPEG
             cropped_img.save(output_file_path, "JPEG", quality=95)
             print(f"Screenshot saved to {output_file_path}")
+            return cropped_img
         else:
             print(
                 f"Error loading google earth for coordinates: lat:{latitude},long:{longitude}"
             )
 
     def quit(self):
-        """Close the browser when done"""
+        """Close the browser and release resources when done"""
         self.driver.quit()
