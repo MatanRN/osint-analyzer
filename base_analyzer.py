@@ -42,13 +42,17 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
     """
     latitude = float(base["latitude"])
     longitude = float(base["longitude"])
+    base_id = f"{latitude}_{longitude}_{base['country']}"
     distance_to_ground = 20000
 
     analyses = {}
 
     for i in range(team_size):
         screenshot = screenshot_handler.screenshot(
-            latitude=latitude, longitude=longitude, ground_distance=distance_to_ground
+            latitude=latitude,
+            longitude=longitude,
+            ground_distance=distance_to_ground,
+            filename=f"{base_id}/analyst_{i+1}",
         )
         screenshot_analysis = analyst.analyze_image(image=screenshot)
         analyses[f"Analyst {i+1}"] = screenshot_analysis
@@ -72,14 +76,14 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
 
     commander = Commander(api_key=OPENROUTER_KEY, analyst_results=analyses)
     verdict = commander.analyze()
+    if verdict == "":
+        raise RuntimeError("LLM Analysis Error")
 
     analyses["Commander"] = json.loads(verdict.strip())
     return analyses
 
 
-def main():
-    csv_path = "./military_bases.csv"
-    rows_to_process = 1
+def analyze_bases(csv_path: str = "./military_bases.csv", rows_to_process=8):
     military_bases = parse_csv(csv_path, rows_to_process)
     screenshot_handler = ScreenshotHandler()
 
@@ -104,12 +108,20 @@ def main():
     base_analyses = existing_analyses.copy()
 
     for base in military_bases:
+
         # Create identifier for current base
         base_id = f"{base.get('latitude', '')}_{base.get('longitude', '')}_{base.get('country', '')}"
         # Skip if this base has already been analyzed
         if base_id in analyzed_bases:
             print(f"Skipping already analyzed base: {base_id}")
             continue
+        # create directory if it doesn't exist
+        os.makedirs(f"./screenshots/{base_id}", exist_ok=True)
+        # if exist_ok remove all files in the directory
+        for filename in os.listdir(f"./screenshots/{base_id}"):
+            file_path = os.path.join(f"./screenshots/{base_id}", filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
         print(f"Analyzing base: {base_id}")
         analyze_country = base["country"]
@@ -148,4 +160,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    analyze_bases()

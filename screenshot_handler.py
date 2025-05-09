@@ -47,6 +47,7 @@ class ScreenshotHandler:
         self,
         latitude: float,
         longitude: float,
+        filename: str,
         ground_distance: int = 0,
         output_file_path: str = None,
     ):
@@ -66,7 +67,7 @@ class ScreenshotHandler:
         image_height = 1024
 
         if output_file_path is None:
-            output_file_path = f"screenshots/location_{latitude}_{longitude}.jpeg"
+            output_file_path = f"./screenshots/{filename}.jpeg"
 
         google_earth_url = f"https://earth.google.com/web/@{latitude},{longitude},0a,{ground_distance}d"
         self.driver.get(google_earth_url)
