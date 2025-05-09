@@ -1,7 +1,7 @@
-from llm_analyst import Analyst
+from openai import OpenAI
 
 
-class Commander(Analyst):
+class Commander:
     """
     Represents a commander AI that synthesizes analyses from multiple Analyst instances.
 
@@ -14,11 +14,21 @@ class Commander(Analyst):
                     a summary of previous analyst reports.
     """
 
-    def __init__(self, api_key: str, analyst_results: list):
-        super().__init__(api_key)
-        self.prompt = f"""You are a commander of military analysts and you are investigating something that intel said
-is probably an enemy base/area. Here is the history of what the analysts said (each one was
-written by a different analyst).{_parse_analyst_results(analyst_results)} Return a final ruling based on the analysis historu"""
+    def __init__(
+        self,
+        api_key: str,
+        analyst_results: list,
+        model: str = "deepseek/deepseek-r1:free",
+    ):
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+        self.model = model
+        self.system_prompt = """You are a highly experienced and decisive US Army Commander. Your mission is to synthesize intelligence reports from your team of analysts who have been investigating a potential enemy base or facility.
+Review the provided analyst reports carefully. Your final output should be a concise and direct ruling or assessment of the situation based *only* on the information presented in these reports.
+Focus on actionable intelligence and the most critical findings. Avoid speculation beyond what the reports support."""
+        self.analyst_results_text = _parse_analyst_results(analyst_results)
 
     def analyze(self):
         """
@@ -31,12 +41,24 @@ written by a different analyst).{_parse_analyst_results(analyst_results)} Return
             str: The textual response from the Gemini model, representing the Commander's
                 final ruling or synthesis of the analyses.
         """
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=[self.prompt],
-        )
-        # Extract JSON string from Markdown code block
-        return response.text
+        user_prompt = f"""Commander, here is the consolidated report from your analysts regarding the suspected enemy area:
+
+{self.analyst_results_text}
+
+Based on these findings, provide your final ruling."""
+
+        try:
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            print(f"Error during API call: {e}")
+            return "Error: Could not get a response from the commander model."
 
 
 def _parse_analyst_results(results: dict) -> str:

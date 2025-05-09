@@ -12,9 +12,10 @@ from llm_commander import Commander
 dotenv.load_dotenv("./.env")
 
 # Get API key from environment variables
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if not API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is missing in the environment variables.")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
+if not (GEMINI_KEY or OPENROUTER_KEY):
+    raise RuntimeError("A key is missing in the environment variables.")
 
 
 def team_analysis(screenshot_handler, analyst, base, team_size=8):
@@ -48,7 +49,7 @@ def team_analysis(screenshot_handler, analyst, base, team_size=8):
 
         analyst.append_results(analyst_index=i, results=screenshot_analysis)
 
-    commander = Commander(api_key=API_KEY, analyst_results=analyses)
+    commander = Commander(api_key=OPENROUTER_KEY, analyst_results=analyses)
     verdict = commander.analyze()
 
     analyses["Commander"] = {"analysis": verdict}
@@ -66,7 +67,7 @@ def main():
     base_analyses = []
     for base in military_bases:
         analyze_country = base["country"]
-        analyst = Analyst(api_key=API_KEY, country=analyze_country)
+        analyst = Analyst(api_key=GEMINI_KEY, country=analyze_country)
         base_analyses.append(
             team_analysis(
                 screenshot_handler=screenshot_handler, analyst=analyst, base=base
