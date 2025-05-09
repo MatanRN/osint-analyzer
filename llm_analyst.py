@@ -2,14 +2,28 @@ import json
 
 from google import genai
 
-MODEL = "gemini-2.0-flash"
-
 
 class Analyst:
-    def __init__(self, api_key: str, country):
+    """
+    Represents an AI analyst that uses a Gemini model to analyze satellite images.
+
+    The analyst is initialized with an API key and a target country. It can then
+    analyze images to identify military structures and equipment, and its prompt
+    can be updated with results from previous analyses to build context.
+
+    Attributes:
+        client: A genai.Client instance for interacting with the Gemini API.
+        model:
+        prompt: A string template used to instruct the Gemini model on how to
+                analyze images and format its response.
+    """
+
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash", country=None):
         self.client = genai.Client(api_key=api_key)
+        self.country = country
+        self.model = model
         self.prompt = f"""
-You are a seasoned Senior Intelligence Analyst specializing in satellite imagery interpretation for the US Army. Your mission is critical. We have credible intelligence indicating this area is a significant military base/facility of {country}.
+You are a seasoned Senior Intelligence Analyst specializing in satellite imagery interpretation for the US Army. Your mission is critical. We have credible intelligence indicating this area is a significant military base/facility of {self.country}.
 
 Your task is to meticulously analyze the provided satellite image. You MUST respond ONLY with a JSON object. Do not include any other text, explanations, or apologies outside of this JSON structure.
 
@@ -44,7 +58,7 @@ The JSON object must contain the following keys:
         """
 
         response = self.client.models.generate_content(
-            model=MODEL,
+            model=self.model,
             contents=[image, self.prompt],
         )
         # Extract JSON string from Markdown code block
@@ -79,7 +93,7 @@ The JSON object must contain the following keys:
 
         previous_analysis_prompt = f"""
 
-Here is the analysis of previous analyst {analyst_index} about this area and their recommendations. You can use this data but don’t use it as fact, think for yourself:
+Here is the analysis of previous analyst {analyst_index+1} about this area and their recommendations. You can use this data but don’t use it as fact, think for yourself:
 Analysis:
 {analysis}
 Things to examine:
