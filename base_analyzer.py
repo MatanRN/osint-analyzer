@@ -83,18 +83,63 @@ def main():
     military_bases = parse_csv(csv_path, rows_to_process)
     screenshot_handler = ScreenshotHandler()
 
-    base_analyses = []
+    # Load existing analyses if the file exists
+    output_file_path = "data.json"
+    existing_analyses = []
+    if os.path.exists(output_file_path):
+        try:
+            with open(output_file_path, "r") as f:
+                existing_analyses = json.load(f)
+                print(f"Loaded {len(existing_analyses)} existing analyses")
+        except json.JSONDecodeError:
+            print(f"Error loading {output_file_path}, starting with empty analyses")
+
+    # Create a set of already analyzed base identifiers (latitude_longitude_country)
+    analyzed_bases = {
+        f"{base_data.get('latitude', '')}_{base_data.get('longitude', '')}_{base_data.get('country', '')}"
+        for analysis in existing_analyses
+        for base_data in [analysis.get("base_info", {})]
+    }
+
+    base_analyses = existing_analyses.copy()
+
     for base in military_bases:
+        # Create identifier for current base
+        base_id = f"{base.get('latitude', '')}_{base.get('longitude', '')}_{base.get('country', '')}"
+        # Skip if this base has already been analyzed
+        if base_id in analyzed_bases:
+            print(f"Skipping already analyzed base: {base_id}")
+            continue
+
+        print(f"Analyzing base: {base_id}")
         analyze_country = base["country"]
         analyst = Analyst(api_key=GEMINI_KEY, country=analyze_country)
-        base_analyses.append(
-            team_analysis(
-                screenshot_handler=screenshot_handler, analyst=analyst, base=base
-            )
-        )
-    bases_data = json.dumps(base_analyses, indent=4)
 
-    output_file_path = "data.json"
+        # Perform analysis
+        analysis_result = team_analysis(
+            screenshot_handler=screenshot_handler, analyst=analyst, base=base
+        )
+
+        # Add base information to the result for future identification
+        analysis_result["base_info"] = {
+            "latitude": base["latitude"],
+            "longitude": base["longitude"],
+            "country": base["country"],
+        }
+
+        # Add to our analyses list
+        base_analyses.append(analysis_result)
+
+        bases_data = json.dumps(base_analyses, indent=4)
+
+        # Save after each analysis to preserve progress
+        temp_data = json.dumps(base_analyses, indent=4)
+        with open(output_file_path, "w") as f:
+            f.write(temp_data)
+        print(f"Updated analysis data saved to {output_file_path}")
+
+    # Final save (may be redundant but ensures consistency)
+    bases_data = json.dumps(base_analyses, indent=4)
     with open(output_file_path, "w") as f:
         f.write(bases_data)
     print(f"Analysis data saved to {output_file_path}")
